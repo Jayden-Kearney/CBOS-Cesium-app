@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Lilydale to Warburton Trail - 3D Explorer</title>
+<style>
+html, body, #cesiumContainer {
+  width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;
+}
+#legend {
+  position: absolute; top: 10px; left: 10px;
+  background: rgba(255,255,255,0.9); padding: 10px; border-radius: 8px;
+  font-size: 13px;
+}
+</style>
+<script src="https://cesium.com/downloads/cesiumjs/releases/1.128/Build/Cesium/Cesium.js"></script>
+<link href="https://cesium.com/downloads/cesiumjs/releases/1.128/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+</head>
+<body>
+<div id="cesiumContainer"></div>
+<div id="legend">
+  <b>Lilydale–Warburton Trail</b><br>
+  <span style="color:gray;">●</span> Car park <br>
+  <span style="color:blue;">●</span> Toilet <br>
+  <span style="color:green;">●</span> Picnic tables <br>
+  <span style="color:orange;">●</span> Other Waypoints
+</div>
+
+<script type="module">
+// 1. Cesium ion token for terrain & photorealistic tiles
+Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5ZDVkNGE4MC1hYzZiLTQzZjMtOGI3OS1hNjYzYzFlYjI3MzgiLCJpZCI6MzI4NDMxLCJpYXQiOjE3NTg3NzIyMDF9.hOHLE4i1EjxEebTNxMVkivb3ErDKSc4a-2-e0r6mdLQ";
+
+// 2. Initialize Cesium viewer with async terrain
+const viewer = new Cesium.Viewer("cesiumContainer", {
+  terrainProvider: await Cesium.createWorldTerrainAsync()
+});
+
+// Add Google Photorealistic 3D Tiles
+viewer.scene.primitives.add(await Cesium.createGooglePhotorealistic3DTileset());
+
+// 3. Load Trail GeoJSON (relative path)
+Cesium.GeoJsonDataSource.load("Lilydale_to_Warburton_Rail_Trail.geojson", { clampToGround: true })
+.then(dataSource => {
+  viewer.dataSources.add(dataSource);
+  const entities = dataSource.entities.values;
+  for (let e of entities) {
+    if (e.polyline) {
+      e.polyline.width = 6;
+      e.polyline.material = Cesium.Color.WHITE;
+      e.polyline.clampToGround = true;
+    }
+  }
+  viewer.zoomTo(dataSource);
+});
+
+// 4. Load Waypoints GeoJSON (relative path)
+Cesium.GeoJsonDataSource.load("Lilydale_to_Warburton_Rail_Trail_waypoints.geojson", { clampToGround: true })
+.then(dataSource => {
+  viewer.dataSources.add(dataSource);
+  const entities = dataSource.entities.values;
+  for (let e of entities) {
+    if (e.point) {
+      const name = e.properties.Name.getValue();
+      let color = Cesium.Color.ORANGE; // default
+      
+      if (/car park/i.test(name)) {
+        color = Cesium.Color.GRAY;
+      } else if (/toilet/i.test(name)) {
+        color = Cesium.Color.BLUE;
+      } else if (/picnic/i.test(name)) {
+        color = Cesium.Color.GREEN;
+      }
+
+      e.point = new Cesium.PointGraphics({
+        pixelSize: 12,
+        color: color,
+        outlineColor: Cesium.Color.BLACK,
+        outlineWidth: 2
+      });
+    }
+  }
+});
+
+</script>
+</body>
+</html>
